@@ -41,32 +41,32 @@ class Message(models.Model):
         ordering = ('-date',)
 
     # function gets all messages between 'the' two users (requires your pk and the other user pk)
-    def get_all_messages(id_1, id_2):
-        messages = []
+    def get_all_messages(self, id_2):
         # get messages between the two users, sort them by date(reverse) and add them to the list
-        message1 = Message.objects.filter(sender_id=id_1, recipient_id=id_2).order_by('-date') # get messages from sender to recipient
-        for x in range(len(message1)):
-            messages.append(message1[x])
-        message2 = Message.objects.filter(sender_id=id_2, recipient_id=id_1).order_by('-date') # get messages from recipient to sender
-        for x in range(len(message2)):
-            messages.append(message2[x])
-
+        message1 = Message.objects.filter(
+            sender_id=self, recipient_id=id_2
+        ).order_by('-date')
+        messages = [message1[x] for x in range(len(message1))]
+        message2 = Message.objects.filter(
+            sender_id=id_2, recipient_id=self
+        ).order_by('-date')
+        messages.extend(message2[x] for x in range(len(message2)))
         # because the function is called when viewing the chat, we'll return all messages as read
-        for x in range(len(messages)):
-            messages[x].is_read = True
+        for message in messages:
+            message.is_read = True
         # sort the messages by date
         messages.sort(key=lambda x: x.date, reverse=False)
         return messages
 
     # function gets all messages between 'any' two users (requires your pk)
-    def get_message_list(u):
+    def get_message_list(self):
         # get all the messages
         m = []  # stores all messages sorted by latest first
         j = []  # stores all usernames from the messages above after removing duplicates
         k = []  # stores the latest message from the sorted usernames above
         for message in Message.objects.all():
-            for_you = message.recipient == u  # messages received by the user
-            from_you = message.sender == u  # messages sent by the user
+            for_you = message.recipient == self
+            from_you = message.sender == self
             if for_you or from_you:
                 m.append(message)
                 m.sort(key=lambda x: x.sender.username)  # sort the messages by senders
@@ -75,8 +75,7 @@ class Message(models.Model):
         # remove duplicates usernames and get single message(latest message) per username(other user) (between you and other user)
         for i in m:
             if i.sender.username not in j or i.recipient.username not in j:
-                j.append(i.sender.username)
-                j.append(i.recipient.username)
+                j.extend((i.sender.username, i.recipient.username))
                 k.append(i)
 
         return k
