@@ -128,15 +128,12 @@ class InboxView(LoginRequiredMixin, DetailView):
         recipient = UserProfile.objects.get(pk=request.POST.get('recipient'))  # get the recipient of the message(You)
         message = request.POST.get('message')  # get the message from the form
 
-        # if the sender is logged in, send the message
-        if request.user.is_authenticated:
-            if request.method == 'POST':
-                if message:
-                    Message.objects.create(sender=sender, recipient=recipient, message=message)
-            return redirect('chat:inbox', username=recipient.username)  # redirect to the inbox of the recipient
-
-        else:
+        if not request.user.is_authenticated:
             return render(request, 'auth/login.html')
+        if message:
+            if request.method == 'POST':
+                Message.objects.create(sender=sender, recipient=recipient, message=message)
+        return redirect('chat:inbox', username=recipient.username)  # redirect to the inbox of the recipient
 
 # -------------------------------- Users list -------------------------------- #
 class UserListsView(LoginRequiredMixin, ListView):
